@@ -11,7 +11,9 @@ let mainWindow
 let webContents
 let code = readFileSync(join(__dirname, '/scripts/do.js')).toString()
 let targetPath = '/Users/huangruichang/Desktop/1688-result'
-let prefix = 'GA'
+// let prefix = 'GA'
+
+let bucket = []
 
 const next = (url) => {
   mainWindow.loadURL(url)
@@ -49,6 +51,7 @@ let queue = []
 let doing = false
 let detailWindow
 let picWindow
+let currentItem
 let initIPC = () => {
   ipcMain.on('alibaba.results', (event, arg) => {
     queue = queue.concat(arg)
@@ -57,6 +60,7 @@ let initIPC = () => {
     //console.log(arg)
     //@TODO handle detail data
     let data = arg.data
+    currentItem = data
     let content = `标题:${data.title}\r\n价格:${data.prices.join(',')}\r\n尺码:${data.sizes.join(',')}\r\n颜色:${data.colors.join(',')}`;
     // console.log(content)
     writeFileSync(join(detailWindow.getOutput(), '产品信息.txt'), content)
@@ -67,12 +71,14 @@ let initIPC = () => {
     // console.log(arg)
     // let arr = []
     let arr = arg.data.images
-    let final = () => {
-      doing = false
-      detailWindow.close()
-      picWindow.close()
-    }
-    picWindow.fetchPic(arr, final, final)
+    // let final = () => {
+    //   doing = false
+    //   detailWindow.close()
+    //   picWindow.close()
+    // }
+    // picWindow.fetchPic(arr, final, final)
+    currentItem.images = arr
+    bucket.push(currentItem)
   })
 }
 let dirIndex = 0
@@ -82,13 +88,13 @@ let doJob = function () {
       return
     }
     doing = true
-    let dirname = join(targetPath, prefix + dirIndex)
-    dirIndex++
-    try {
-      mkdirSync(dirname)
-    } catch (ignore) {
-      //console.log(ignore)
-    }
+    // let dirname = join(targetPath, prefix + dirIndex)
+    // dirIndex++
+    // try {
+    //   mkdirSync(dirname)
+    // } catch (ignore) {
+    //   //console.log(ignore)
+    // }
     let job = queue.splice(0, 1)[0]
     detailWindow = new DetailWindow(job, dirname)
     // clearInterval(interval)
