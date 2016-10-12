@@ -11,8 +11,8 @@ const Cache = require('./tool/cache')
 let mainWindow
 let logWindow
 let webContents
+let targetPath
 let code = readFileSync(join(__dirname, '/scripts/do.js')).toString()
-let targetPath = '/Users/huangruichang/Desktop/1688-result'
 let prefix = 'GA'
 let targetUrl = 'https://infshop.1688.com/page/offerlist.htm'.split('?')[0]
 // let targetUrl = 'https://shop1461949109898.1688.com/page/offerlist.htm?spm=a261y.7663282.0.0.FeHOyp'.split('?')[0]

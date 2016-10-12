@@ -40,6 +40,9 @@
   var $targetUrl = $('input[name="url"]');
   var $prefix = $('input[name="prefix"]');
   var $startButton = $('#start');
+
+  $targetPath.val(targetPath + '/hehe')
+
   $startButton.on('click', function () {
     var dirReg = /^file:\/\//;
     var targetUrlReg = /page\/offerlist/ig;
