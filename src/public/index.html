@@ -21,7 +21,7 @@
   <!--</div>-->
   <!--<div>-->
     <label for="path">存放文件夹:</label>
-    <input type="text" name="path" value="/Users/huangruichang/Desktop/1688-result/hehe"/>
+    <input type="text" name="path" value=""/>
   </div>
   <div>
     <label for="url">店铺url:</label>
@@ -40,6 +40,9 @@
   var $targetUrl = $('input[name="url"]');
   var $prefix = $('input[name="prefix"]');
   var $startButton = $('#start');
+
+  $targetPath.val(targetPath + '/hehe')
+
   $startButton.on('click', function () {
     var dirReg = /^file:\/\//;
     var targetUrlReg = /page\/offerlist/ig;

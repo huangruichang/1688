@@ -1,5 +1,7 @@
 
+const { dirname } = require('path')
 const { unlinkSync } = require('fs')
+const { ensureDirSync } = require('fs-extra')
 const low = require('lowdb')
 const fileAsync = require('lowdb/lib/file-async')
 
@@ -7,6 +9,7 @@ class Cache {
 
   constructor(path, name) {
     this.path = path
+    ensureDirSync(dirname(path))
     this.db = low(path, {
       storage: fileAsync
     })
