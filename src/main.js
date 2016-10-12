@@ -1,29 +1,28 @@
 
-const { readFileSync, writeFileSync } = require('fs')
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { readFileSync } = require('fs')
+const { BrowserWindow, ipcMain } = require('electron')
 const { join } = require('path')
-const { mkdirSync } = require('fs')
+const url = require('url')
 const DetailWindow = require('./tool/detail-window')
 const PicWindow = require('./tool/pic-window')
-
+const XLSXUtil = require('./tool/xlsx-util')
+const Cache = require('./tool/cache')
 
 let mainWindow
+let logWindow
 let webContents
 let code = readFileSync(join(__dirname, '/scripts/do.js')).toString()
 let targetPath = '/Users/huangruichang/Desktop/1688-result'
-// let prefix = 'GA'
-
+let prefix = 'GA'
+let targetUrl = 'https://infshop.1688.com/page/offerlist.htm'.split('?')[0]
+// let targetUrl = 'https://shop1461949109898.1688.com/page/offerlist.htm?spm=a261y.7663282.0.0.FeHOyp'.split('?')[0]
+// let targetUrl = 'https://enla365.1688.com/page/offerlist.htm?spm=a261y.7663282.0.0.qEoSwH'.split('?')[0]
 let bucket = []
+let cache
+let cachePath
 
 const next = (url) => {
-  mainWindow.loadURL(url)
-}
-
-app.on('window-all-closed', () => {
-  app.quit()
-})
-
-app.on('ready', () => {
+  mainWindow && mainWindow.close()
   mainWindow = new BrowserWindow({
     width: 800,
     height: 640,
@@ -31,73 +30,164 @@ app.on('ready', () => {
     webPreferences: {
       nodeIntegration: false,
       preload: join(__dirname, 'scripts/', "preload.js"),
-    }
+    },
+    show: false
   })
-  initIPC()
-  //next('https://s.1688.com/selloffer/offer_search.htm?keywords=a&button_click=top&earseDirect=false&n=y')
-
-  //next('https://taodoupf.1688.com/page/offerlist.htm')
-
-  next('https://shop1461949109898.1688.com/page/offerlist.htm')
-
   webContents = mainWindow.webContents
 
   webContents.on('did-finish-load', () => {
     webContents.executeJavaScript(code)
   })
-})
+  mainWindow.loadURL(url)
+}
+
+module.exports = (tp, tu, pre, opt) => {
+  targetPath = tp
+  targetUrl = tu.split('?')[0]
+  prefix = pre
+  logWindow = opt.logWindow
+  initIPC()
+  initCache()
+  //next('https://shop1461949109898.1688.com/page/offerlist.htm')
+  next(targetUrl)
+}
 
 let queue = []
 let doing = false
 let detailWindow
 let picWindow
 let currentItem
+let total
+let dirIndex = 0
+let currentPage = 1
+let progressInit = false
 let initIPC = () => {
   ipcMain.on('alibaba.results', (event, arg) => {
-    queue = queue.concat(arg)
+    let targetLinks = []
+    for (let url of arg.links) {
+      let result = cache.find('url', url)
+      if (result) {
+        bucket.push(result)
+        dirIndex++
+        logWindow.log(url, dirIndex)
+        console.log('existed!')
+      } else {
+        targetLinks.push(url)
+      }
+    }
+
+    // queue = queue.concat(arg.links)
+    queue = queue.concat(targetLinks)
+    total = +arg.offerCount
+    if (total === 0) {
+      total = queue.length + cache.size()
+    }
+    if (!progressInit) {
+      progressInit = true
+      logWindow.progress(total)
+    }
+    pageTotal = +arg.pageCount
+    currentPage++
+    if (currentPage <= pageTotal) {
+      next(targetUrl + `?pageNum=${currentPage}`)
+    }
   })
   ipcMain.on('alibaba.results.detail', (event, arg) => {
-    //console.log(arg)
-    //@TODO handle detail data
-    let data = arg.data
+    let data = arg
     currentItem = data
-    let content = `标题:${data.title}\r\n价格:${data.prices.join(',')}\r\n尺码:${data.sizes.join(',')}\r\n颜色:${data.colors.join(',')}`;
-    // console.log(content)
-    writeFileSync(join(detailWindow.getOutput(), '产品信息.txt'), content)
-    doing = false
-    picWindow = new PicWindow(arg.data.picURL, detailWindow.getOutput())
+    let output = detailWindow.getOutput()
+    detailWindow.close()
+    detailWindow = undefined
+    if (data.picURL) {
+      picWindow = new PicWindow(data.picURL, output)
+    } else {
+      // 下架以后
+      bucket.push({
+        itemName: prefix + dirIndex,
+        url: data.url,
+        prices: ['已下架'],
+        amounts: ['已下架'],
+        colors: ['已下架'],
+        sizes: ['已下架']
+      })
+      cache.push({
+        itemName: prefix + dirIndex,
+        url: data.url,
+        prices: ['已下架'],
+        amounts: ['已下架'],
+        colors: ['已下架'],
+        sizes: ['已下架']
+      })
+      // dirIndex--
+      doing = false
+    }
   })
   ipcMain.on('alibaba.results.pics', (event, arg) => {
-    // console.log(arg)
-    // let arr = []
-    let arr = arg.data.images
-    // let final = () => {
-    //   doing = false
-    //   detailWindow.close()
-    //   picWindow.close()
-    // }
-    // picWindow.fetchPic(arr, final, final)
+    let arr = arg.images
     currentItem.images = arr
+    // currentItem.itemName = `${prefix}${dirIndex}`
+    currentItem.itemName = prefix + dirIndex
     bucket.push(currentItem)
+    picWindow.close()
+    picWindow = undefined
+    doing = false
+    if (!cache.exist('url', currentItem.url)) {
+      cache.push(currentItem)
+    }
   })
 }
-let dirIndex = 0
+
+let initCache = () => {
+  cachePath = `${targetPath}\/${prefix}-${url.parse(targetUrl).hostname}.json`
+  cache = new Cache(cachePath, 'alibaba')
+  // let cacheSize = cache.size()
+  // dirIndex = cacheSize
+  // console.log('initCache')
+  // console.log(dirIndex)
+}
+
 let doJob = function () {
   let interval = setInterval(function () {
-    if (queue.length <= 0 || doing) {
+    if ((queue.length <= 0 && bucket.length <= 0) || doing) {
       return
     }
+    dirIndex++
+
     doing = true
-    // let dirname = join(targetPath, prefix + dirIndex)
-    // dirIndex++
-    // try {
-    //   mkdirSync(dirname)
-    // } catch (ignore) {
-    //   //console.log(ignore)
-    // }
+    let dirname = join(targetPath, prefix + dirIndex)
     let job = queue.splice(0, 1)[0]
-    detailWindow = new DetailWindow(job, dirname)
+    if (job) {
+      detailWindow = new DetailWindow(job, dirname)
+      logWindow.log(job, dirIndex)
+    } else {
+      doing = false
+    }
     // clearInterval(interval)
+
+    console.log(dirIndex)
+    // console.log(total)
+    // if (dirIndex === total) {
+    if (dirIndex >= total) {
+      // detailWindow && detailWindow.close()
+      // mainWindow && mainWindow.close()
+      // picWindow && picWindow.close()
+
+      // console.log(bucket)
+      // console.log(bucket.length)
+      // console.log(total)
+      clearInterval(interval)
+      setTimeout(() => {
+        let hehe = targetPath + '/' + new Date().getTime() + '.xlsx'
+        let targetBucket = cache.all()
+        console.log('targetBucket length:%d', targetBucket.length)
+        let xlsxUtil = new XLSXUtil(targetBucket, hehe)
+        console.log('finished!')
+        cache.clear()
+        logWindow.finish()
+
+      }, 30 * 1000)
+      // app.quit()
+    }
   }, 2000)
 
 }

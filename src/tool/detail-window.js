@@ -2,7 +2,6 @@
 const { readFileSync } = require('fs')
 const { BrowserWindow } = require('electron')
 const { join } = require('path')
-const xlsx = require('node-xlsx')
 
 let code = readFileSync(join(__dirname, '../scripts/doDetail.js')).toString()
 
@@ -18,12 +17,14 @@ class DetailWindow {
       webPreferences: {
         nodeIntegration: false,
         preload: join(__dirname, '../scripts/', "preload.js"),
-      }
+      },
+      show: false
     })
     let webContents = this.mainWindow.webContents
     webContents.on('did-finish-load', () => {
       webContents.executeJavaScript(code)
     })
+    // this.mainWindow.hide()
     this.mainWindow.loadURL(url)
   }
 

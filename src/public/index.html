@@ -1,0 +1,72 @@
+<!DOCTYPE>
+<html>
+<head>
+  <meta charset="utf-8"/>
+</head>
+<body>
+  <!--<div>-->
+    <!--<label for="path">存放文件夹:</label>-->
+    <!--<input type="text" name="path"/>-->
+  <!--</div>-->
+  <!--<div>-->
+    <!--<label for="url">店铺url:</label>-->
+    <!--<input type="text" name="url"/>-->
+  <!--</div>-->
+  <!--<div>-->
+    <!--<label for="prefix">前缀:</label>-->
+    <!--<input type="text" name="prefix"/>-->
+  <!--</div>-->
+  <!--<div>-->
+    <!--<button id="start"/>开始</button>-->
+  <!--</div>-->
+  <!--<div>-->
+    <label for="path">存放文件夹:</label>
+    <input type="text" name="path" value="/Users/huangruichang/Desktop/1688-result/hehe"/>
+  </div>
+  <div>
+    <label for="url">店铺url:</label>
+    <input type="text" name="url" value="https://shop1461949109898.1688.com/page/offerlist.htm?spm=a2615.7691456.0.0.W5G5cZ"/>
+  </div>
+  <div>
+    <label for="prefix">前缀:</label>
+    <input type="text" name="prefix" value="GOOD"/>
+  </div>
+  <div>
+    <button id="start"/>开始</button>
+  </div>
+</body>
+<script>
+  var $targetPath = $('input[name="path"]');
+  var $targetUrl = $('input[name="url"]');
+  var $prefix = $('input[name="prefix"]');
+  var $startButton = $('#start');
+  $startButton.on('click', function () {
+    var dirReg = /^file:\/\//;
+    var targetUrlReg = /page\/offerlist/ig;
+    var targetPath = $targetPath.val();
+    var targetUrl = $targetUrl.val();
+    var prefix = $prefix.val();
+    if (!targetPath) {
+      return alert('请填写存放文件夹地址');
+    }
+    if (!targetUrl) {
+      return alert('请填写店铺产品 url');
+    }
+    if (!prefix) {
+      return alert('请填写产品前缀');
+    }
+//    if (!dirReg.test(targetPath)) {
+//      return alert('请输入正确的文件夹地址');
+//    }
+    if (!targetUrlReg.test(targetUrl)) {
+      return alert('请输入正确的店铺 url');
+    }
+    console.log(targetPath)
+    ipc.send('alibaba.start', {
+      targetPath: targetPath,
+      targetUrl: targetUrl,
+      prefix: prefix
+    })
+  });
+</script>
+</html>

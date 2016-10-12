@@ -19,12 +19,14 @@ class PicWindow {
       webPreferences: {
         nodeIntegration: false,
         preload: join(__dirname, '../scripts/', "preload.js"),
-      }
+      },
+      show: false
     })
     let webContents = this.mainWindow.webContents
     webContents.on('did-finish-load', () => {
       webContents.executeJavaScript(code)
     })
+    this.mainWindow.hide()
     this.mainWindow.loadURL(url)
   }
 

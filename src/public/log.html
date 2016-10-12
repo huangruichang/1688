@@ -1,0 +1,50 @@
+<!DOCTYPE>
+<html>
+<head>
+  <meta charset="utf-8"/>
+</head>
+<body>
+  <div style="position: absolute;top: 0;left: 0;">
+    <div>
+      进度:
+    </div>
+    <div>
+      <span id="current">0</span>
+      <span>/</span>
+      <span id="total">0</span>
+    </div>
+  </div>
+  <div id="error"></div>
+  <div id="log" style="margin-top: 50px;"></div>
+  <div id="finish" style="display: none">
+    完成!
+  </div>
+</body>
+<script>
+  var ipc = window.ipc;
+  var $log = $('#log');
+  var $error = $('#error');
+  var $total = $('#total');
+  var $current = $('#current');
+  var $finish = $('#finish');
+  ipc.on('alibaba.progress', function (event, arg) {
+    $total.text(arg.total);
+  });
+  ipc.on('alibaba.process.log', function (event, arg) {
+    var $dom = [
+      '<div>',
+        '<span>' + arg.index + '</span>:',
+        '<span>' + arg.url + '</span>',
+      '</div>'
+    ].join('');
+    $log.append($dom);
+    $current.text(arg.index);
+  });
+  ipc.on('alibaba.process.finish', function () {
+    $finish.show();
+  });
+  ipc.on('alibaba.process.error', function (event, arg) {
+    $error.append(arg.msg.toString());
+  })
+</script>
+</html>

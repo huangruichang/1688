@@ -20,19 +20,28 @@ $sizes.each(function () {
   sizes.push($(this).text())
 });
 
+var amounts = [];
+var $amounts = $('.mod-detail-price .amount .value');
+$amounts.each(function () {
+  amounts.push($(this).text());
+});
+
 var $pic = $('.vertical-img .box-img[trace=largepic]');
 var picURL = $pic.attr('href');
 
 var $title = $('.mod-detail-title .d-title')
 var title = $title.text();
 
+var $postage = $('.mod-detail-postage .obj-carriage .value');
+var postage = $postage.text();
+
 ipc.send('alibaba.results.detail', {
-  url: location.href,
-  data: {
     prices: prices,
     colors: colors,
     sizes: sizes,
+    amounts: amounts,
     picURL: picURL,
-    title: title
-  }
+    title: title,
+    postage: postage,
+    url: location.href
 })

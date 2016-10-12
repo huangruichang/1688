@@ -9,7 +9,13 @@ var doJob = function () {
     var link = $(this);
     links.push(link.attr('href'))
   });
-  ipc.send('alibaba.results', links)
+  var data = {
+    offerCount: $offerCount.text(),
+    pageCount: $pageCount.text(),
+    links: links
+  }
+  ipc.send('alibaba.results', data)
+  console.log(data)
 }
 
 doJob();
